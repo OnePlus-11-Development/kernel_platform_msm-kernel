@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <trace/hooks/sched.h>
@@ -15,8 +15,6 @@
 #if IS_ENABLED(CONFIG_OPLUS_FEATURE_FRAME_BOOST)
 #include <../kernel/oplus_cpu/sched/frame_boost/frame_group.h>
 #endif
-
-#define MSEC_TO_NSEC (1000 * 1000)
 
 static DEFINE_PER_CPU(cpumask_var_t, walt_local_cpu_mask);
 DEFINE_PER_CPU(u64, rt_task_arrival_time) = 0;

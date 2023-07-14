@@ -84,3 +84,5 @@ obj-$(CONFIG_HAPTIC_FEEDBACK) += aw8697_haptic/
 
 obj-$(CONFIG_QSEECOM_PROXY) 	+= qseecom_proxy.o
 
+obj-$(CONFIG_QPNP_MISC)		+= qpnp-misc.o
+obj-$(CONFIG_PROFILER)			+= profiler.o

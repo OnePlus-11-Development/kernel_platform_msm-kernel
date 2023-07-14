@@ -2,7 +2,6 @@
 /*
  * Copyright (c) 2018-2021, The Linux Foundation. All rights reserved.
  */
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/regmap.h>
