@@ -72,4 +72,3 @@ cqhci-crypto-qti.ko
 crypto-qti-common.ko
 crypto-qti-hwkm.ko
 hwkm_v1.ko
-sdhci-msm-scaling.ko

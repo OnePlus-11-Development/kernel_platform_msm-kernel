@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2013-2014, 2017-2021, The Linux Foundation.
  * All rights reserved.
- * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/export.h>
@@ -328,30 +328,28 @@ int qcom_cc_really_probe(struct platform_device *pdev,
 
 	ret = clk_vdd_proxy_vote(&pdev->dev, desc);
 	if (ret)
-		goto deinit_clk_regulator;
+		return ret;
 
 	if (desc->num_resets) {
 		ret = devm_reset_controller_register(dev, &reset->rcdev);
 		if (ret)
-			goto proxy_unvote;
+			return ret;
 	}
 
 	if (desc->gdscs && desc->num_gdscs) {
 		scd = devm_kzalloc(dev, sizeof(*scd), GFP_KERNEL);
-		if (!scd) {
-			ret = -ENOMEM;
-			goto proxy_unvote;
-		}
+		if (!scd)
+			return -ENOMEM;
 		scd->dev = dev;
 		scd->scs = desc->gdscs;
 		scd->num = desc->num_gdscs;
 		ret = gdsc_register(scd, &reset->rcdev, regmap);
 		if (ret)
-			goto proxy_unvote;
+			return ret;
 		ret = devm_add_action_or_reset(dev, qcom_cc_gdsc_unregister,
 					       scd);
 		if (ret)
-			goto proxy_unvote;
+			return ret;
 	}
 
 	cc->rclks = rclks;
@@ -368,7 +366,7 @@ int qcom_cc_really_probe(struct platform_device *pdev,
 
 		ret = devm_clk_hw_register(dev, clk_hws[i]);
 		if (ret)
-			goto proxy_unvote;
+			return ret;
 	}
 
 	for (i = 0; i < num_clks; i++) {
@@ -377,7 +375,7 @@ int qcom_cc_really_probe(struct platform_device *pdev,
 
 		ret = devm_clk_register_regmap(dev, rclks[i]);
 		if (ret)
-			goto proxy_unvote;
+			return ret;
 
 		clk_hw_populate_clock_opp_table(dev->of_node, &rclks[i]->hw);
 
@@ -392,15 +390,9 @@ int qcom_cc_really_probe(struct platform_device *pdev,
 
 	ret = devm_of_clk_add_hw_provider(dev, qcom_cc_clk_hw_get, cc);
 	if (ret)
-		goto proxy_unvote;
+		return ret;
 
 	return 0;
-
-proxy_unvote:
-	clk_vdd_proxy_unvote(dev, desc);
-deinit_clk_regulator:
-	clk_regulator_deinit(desc);
-	return ret;
 }
 EXPORT_SYMBOL_GPL(qcom_cc_really_probe);
 
@@ -509,8 +501,7 @@ int qcom_cc_runtime_init(struct platform_device *pdev,
 	if (IS_ERR(desc->path)) {
 		if (PTR_ERR(desc->path) != -EPROBE_DEFER)
 			dev_err(dev, "error getting path\n");
-		ret = PTR_ERR(desc->path);
-		goto deinit_clk_regulator;
+		return PTR_ERR(desc->path);
 	}
 
 	platform_set_drvdata(pdev, desc);
@@ -534,8 +525,6 @@ destroy_pm_clk:
 disable_pm_runtime:
 	pm_runtime_disable(dev);
 	icc_put(desc->path);
-deinit_clk_regulator:
-	clk_regulator_deinit(desc);
 
 	return ret;
 }

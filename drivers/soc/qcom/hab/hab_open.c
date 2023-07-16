@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include "hab.h"
 
@@ -262,20 +262,14 @@ int hab_open_cancel_notify(struct hab_open_request *request)
 	return physical_channel_send(request->pchan, &header, &request->xdata);
 }
 
-/*
- * There will be scheduling in habmm_socket_open, which cannot be called
- * in the atomic context. Therefore, there is no need to consider such
- * atomic caller context which already disables h/w irq when using
- * hab_write_lock/hab_write_unlock here.
- */
 int hab_open_pending_enter(struct uhab_context *ctx,
 		struct physical_channel *pchan,
 		struct hab_open_node *pending)
 {
-	hab_write_lock(&ctx->ctx_lock, !ctx->kernel);
+	write_lock(&ctx->ctx_lock);
 	list_add_tail(&pending->node, &ctx->pending_open);
 	ctx->pending_cnt++;
-	hab_write_unlock(&ctx->ctx_lock, !ctx->kernel);
+	write_unlock(&ctx->ctx_lock);
 
 	return 0;
 }
@@ -287,7 +281,7 @@ int hab_open_pending_exit(struct uhab_context *ctx,
 	struct hab_open_node *node, *tmp;
 	int ret = -ENOENT;
 
-	hab_write_lock(&ctx->ctx_lock, !ctx->kernel);
+	write_lock(&ctx->ctx_lock);
 	list_for_each_entry_safe(node, tmp, &ctx->pending_open, node) {
 		if ((node->request.type == pending->request.type) &&
 			(node->request.pchan
@@ -303,7 +297,7 @@ int hab_open_pending_exit(struct uhab_context *ctx,
 			ret = 0;
 		}
 	}
-	hab_write_unlock(&ctx->ctx_lock, !ctx->kernel);
+	write_unlock(&ctx->ctx_lock);
 
 	return ret;
 }

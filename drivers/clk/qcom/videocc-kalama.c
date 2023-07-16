@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/clk.h>
@@ -19,7 +18,6 @@
 #include "clk-alpha-pll.h"
 #include "clk-branch.h"
 #include "clk-pll.h"
-#include "clk-pm.h"
 #include "clk-rcg.h"
 #include "clk-regmap.h"
 #include "clk-regmap-divider.h"
@@ -47,7 +45,7 @@ static struct pll_vco lucid_ole_vco[] = {
 	{ 249600000, 2000000000, 0 },
 };
 
-static struct alpha_pll_config video_cc_pll0_config = {
+static const struct alpha_pll_config video_cc_pll0_config = {
 	.l = 0x1E,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -63,7 +61,7 @@ static struct alpha_pll_config video_cc_pll0_config = {
 	.user_ctl_hi_val = 0x00000005,
 };
 
-static struct alpha_pll_config video_cc_pll0_config_kalama_v2 = {
+static const struct alpha_pll_config video_cc_pll0_config_kalama_v2 = {
 	.l = 0x25,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -84,7 +82,6 @@ static struct clk_alpha_pll video_cc_pll0 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &video_cc_pll0_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "video_cc_pll0",
@@ -106,7 +103,7 @@ static struct clk_alpha_pll video_cc_pll0 = {
 	},
 };
 
-static struct alpha_pll_config video_cc_pll1_config = {
+static const struct alpha_pll_config video_cc_pll1_config = {
 	.l = 0x2B,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -122,7 +119,7 @@ static struct alpha_pll_config video_cc_pll1_config = {
 	.user_ctl_hi_val = 0x00000005,
 };
 
-static struct alpha_pll_config video_cc_pll1_config_kalama_v2 = {
+static const struct alpha_pll_config video_cc_pll1_config_kalama_v2 = {
 	.l = 0x36,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -143,7 +140,6 @@ static struct clk_alpha_pll video_cc_pll1 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &video_cc_pll1_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "video_cc_pll1",
@@ -511,16 +507,6 @@ static struct clk_branch video_cc_sleep_clk = {
 	},
 };
 
-/*
- * video_cc_ahb_clk
- * video_cc_xo_clk
- */
-
-static struct critical_clk_offset critical_clk_list[] = {
-	{ .offset = 0x80f4, .mask = BIT(0) },
-	{ .offset = 0x8124, .mask = BIT(0) },
-};
-
 static struct clk_regmap *video_cc_kalama_clocks[] = {
 	[VIDEO_CC_AHB_CLK_SRC] = &video_cc_ahb_clk_src.clkr,
 	[VIDEO_CC_MVS0_CLK] = &video_cc_mvs0_clk.clkr,
@@ -566,8 +552,6 @@ static struct qcom_cc_desc video_cc_kalama_desc = {
 	.num_resets = ARRAY_SIZE(video_cc_kalama_resets),
 	.clk_regulators = video_cc_kalama_regulators,
 	.num_clk_regulators = ARRAY_SIZE(video_cc_kalama_regulators),
-	.critical_clk_en = critical_clk_list,
-	.num_critical_clk = ARRAY_SIZE(critical_clk_list),
 };
 
 static const struct of_device_id video_cc_kalama_match_table[] = {
@@ -580,9 +564,7 @@ MODULE_DEVICE_TABLE(of, video_cc_kalama_match_table);
 static void video_cc_kalama_fixup_kalamav2(struct regmap *regmap)
 {
 	clk_lucid_ole_pll_configure(&video_cc_pll0, regmap, &video_cc_pll0_config_kalama_v2);
-	video_cc_pll0.config = &video_cc_pll0_config_kalama_v2;
 	clk_lucid_ole_pll_configure(&video_cc_pll1, regmap, &video_cc_pll1_config_kalama_v2);
-	video_cc_pll1.config = &video_cc_pll1_config_kalama_v2;
 	video_cc_mvs0_clk_src.freq_tbl = ftbl_video_cc_mvs0_clk_src_kalama_v2;
 	video_cc_mvs0_clk_src.clkr.vdd_data.rate_max[VDD_LOWER_D1] = 0;
 	video_cc_mvs0_clk_src.clkr.vdd_data.rate_max[VDD_HIGH] = 1600000000;
@@ -616,9 +598,13 @@ static int video_cc_kalama_probe(struct platform_device *pdev)
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
 
-	ret = register_qcom_clks_pm(pdev, true, &video_cc_kalama_desc);
+	ret = qcom_cc_runtime_init(pdev, &video_cc_kalama_desc);
 	if (ret)
-		dev_err(&pdev->dev, "Failed to register for pm ops\n");
+		return ret;
+
+	ret = pm_runtime_get_sync(&pdev->dev);
+	if (ret)
+		return ret;
 
 	clk_lucid_ole_pll_configure(&video_cc_pll0, regmap, &video_cc_pll0_config);
 	clk_lucid_ole_pll_configure(&video_cc_pll1, regmap, &video_cc_pll1_config);
@@ -627,8 +613,13 @@ static int video_cc_kalama_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	/* Enabling always ON clocks */
-	clk_restore_critical_clocks(&pdev->dev);
+	/*
+	 * Keep clocks always enabled:
+	 *	video_cc_ahb_clk
+	 *	video_cc_xo_clk
+	 */
+	regmap_update_bits(regmap, 0x80f4, BIT(0), BIT(0));
+	regmap_update_bits(regmap, 0x8124, BIT(0), BIT(0));
 
 	ret = qcom_cc_really_probe(pdev, &video_cc_kalama_desc, regmap);
 	if (ret) {
@@ -647,12 +638,19 @@ static void video_cc_kalama_sync_state(struct device *dev)
 	qcom_cc_sync_state(dev, &video_cc_kalama_desc);
 }
 
+static const struct dev_pm_ops video_cc_kalama_pm_ops = {
+	SET_RUNTIME_PM_OPS(qcom_cc_runtime_suspend, qcom_cc_runtime_resume, NULL)
+	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
+				pm_runtime_force_resume)
+};
+
 static struct platform_driver video_cc_kalama_driver = {
 	.probe = video_cc_kalama_probe,
 	.driver = {
 		.name = "video_cc-kalama",
 		.of_match_table = video_cc_kalama_match_table,
 		.sync_state = video_cc_kalama_sync_state,
+		.pm = &video_cc_kalama_pm_ops,
 	},
 };
 

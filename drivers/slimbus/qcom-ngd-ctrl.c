@@ -1105,8 +1105,6 @@ static int qcom_slim_ngd_xfer_msg(struct slim_controller *sctrl,
 		if (!timeout) {
 			SLIM_WARN(ctrl, "TX usr_msg timed out:MC:0x%x,mt:0x%x",
 				txn->mc, txn->mt);
-			ctrl->capability_timeout = true;
-			txn->comp = NULL;
 			mutex_unlock(&ctrl->tx_lock);
 			return -ETIMEDOUT;
 		}
@@ -1462,7 +1460,6 @@ static int qcom_slim_ngd_exit_dma(struct qcom_slim_ngd_ctrl *ctrl)
 		dma_free_coherent(dev, size, ctrl->rx_base, ctrl->rx_phys_base);
 		size = ((QCOM_SLIM_NGD_DESC_NUM + 1) * SLIM_MSGQ_BUF_LEN);
 		dma_free_coherent(dev, size, ctrl->tx_base, ctrl->tx_phys_base);
-		ctrl->tx_base = ctrl->rx_base = NULL;
 	} else {
 		ctrl->r_mem.r_vbase = ctrl->r_mem.r_vsbase;
 		ctrl->r_mem.r_res->start = ctrl->r_mem.r_pbase;
@@ -2136,31 +2133,30 @@ static int qcom_slim_ngd_ctrl_probe(struct platform_device *pdev)
 	if (IS_ERR(ctrl->pdr)) {
 		ret = PTR_ERR(ctrl->pdr);
 		dev_err(dev, "Failed to init PDR handle: %d\n", ret);
-		goto err_pdr_alloc;
+		goto err_out;
 	}
 
 	pds = pdr_add_lookup(ctrl->pdr, "avs/audio", "msm/adsp/audio_pd");
 	if (IS_ERR(pds) && PTR_ERR(pds) != -EALREADY) {
 		ret = PTR_ERR(pds);
 		dev_err(dev, "pdr add lookup failed: %d\n", ret);
-		goto err_pdr_lookup;
+		goto pdr_release;
 	}
 
 	ret = of_qcom_slim_ngd_register(dev, ctrl);
 	if (ret) {
 		SLIM_ERR(ctrl, "qcom_slim_ngd_register failed ret:%d\n", ret);
-		goto err_pdr_lookup;
+		goto pdr_release;
 	}
 
 	platform_driver_register(&qcom_slim_ngd_driver);
 	SLIM_INFO(ctrl, "NGD SB controller is up!\n");
 	return 0;
 
-err_pdr_lookup:
-        pdr_handle_release(ctrl->pdr);
-
-err_pdr_alloc:
-        qcom_unregister_ssr_notifier(ctrl->notifier, &ctrl->nb);
+pdr_release:
+	pdr_handle_release(ctrl->pdr);
+err_out:
+	qcom_unregister_ssr_notifier(ctrl->notifier, &ctrl->nb);
 
 remove_ipc_sysfs:
 	if (ctrl->ipc_slimbus_log)

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/completion.h>
@@ -651,29 +651,6 @@ static void start_usb_peripheral_work(struct work_struct *w)
 	}
 }
 
-static void start_usb_dp(struct usbpd *pd, bool ss)
-{
-	enum plug_orientation cc = usbpd_get_plug_orientation(pd);
-	union extcon_property_value val;
-
-	/* set state to enable to allow client can get polarity */
-	extcon_set_state(pd->extcon, EXTCON_USB_HOST, 1);
-
-	val.intval = (cc == ORIENTATION_CC2);
-	extcon_set_property(pd->extcon, EXTCON_USB_HOST, EXTCON_PROP_USB_TYPEC_POLARITY, val);
-
-	val.intval = ss  ? 1 : 0;
-	extcon_set_property(pd->extcon, EXTCON_USB_HOST, EXTCON_PROP_USB_SS, val);
-
-	extcon_set_state(pd->extcon, EXTCON_DISP_DP, false);
-	extcon_set_state_sync(pd->extcon, EXTCON_DISP_DP, true);
-}
-
-static void stop_usb_dp(struct usbpd *pd)
-{
-	extcon_set_state_sync(pd->extcon, EXTCON_DISP_DP, false);
-}
-
 /**
  * This API allows client driver to request for releasing SS lanes. It should
  * not be called from atomic context.
@@ -703,9 +680,12 @@ static int usbpd_release_ss_lane(struct usbpd *pd,
 		goto err_exit;
 	}
 
-	pd->ss_lane_svid = hdlr->svid;
+	stop_usb_host(pd);
 
-	start_usb_dp(pd, false);
+	if (pd->peer_usb_comm)
+		start_usb_host(pd, false);
+
+	pd->ss_lane_svid = hdlr->svid;
 
 err_exit:
 	return ret;
@@ -1571,7 +1551,7 @@ static void handle_vdm_resp_ack(struct usbpd *pd, u32 *vdos, u8 num_vdos,
 			if (svid) {
 				handler = find_svid_handler(pd, svid);
 				if (handler) {
-					usbpd_dbg(&pd->dev, "Notify SVID: 0x%04x discovered\n",
+					usbpd_dbg(&pd->dev, "Notify SVID: 0x%04x disconnect\n",
 							handler->svid);
 					handler->connect(handler,
 							pd->peer_usb_comm);
@@ -1588,7 +1568,6 @@ static void handle_vdm_resp_ack(struct usbpd *pd, u32 *vdos, u8 num_vdos,
 	}
 
 }
-
 static void handle_vdm_rx(struct usbpd *pd, struct rx_msg *rx_msg)
 {
 	int ret;
@@ -1609,14 +1588,8 @@ static void handle_vdm_rx(struct usbpd *pd, struct rx_msg *rx_msg)
 			svid, cmd, cmd_type, vdm_hdr,
 			pd->has_dp ? "true" : "false");
 
-	if ((svid == 0xFF01) && (!pd->has_dp)) {
+	if ((svid == 0xFF01) && (!pd->has_dp))
 		pd->has_dp = true;
-		/* policy engine based display driver only support release 4 lanes,
-		 * it is not good, as from usb view, for two lanes display,
-		 * there is extra operation except phy.
-		 */
-		start_usb_dp(pd, true);
-	}
 
 	/* if it's a supported SVID, pass the message to the handler */
 	handler = find_svid_handler(pd, svid);
@@ -1791,8 +1764,6 @@ static void reset_vdm_state(struct usbpd *pd)
 		}
 	}
 
-	stop_usb_dp(pd);
-
 	pd->vdm_state = VDM_NONE;
 	kfree(pd->vdm_tx_retry);
 	pd->vdm_tx_retry = NULL;
@@ -1963,6 +1934,7 @@ static void dr_swap(struct usbpd *pd)
 				SVDM_CMD_TYPE_INITIATOR, 0, NULL, 0);
 	}
 }
+
 
 static void vconn_swap(struct usbpd *pd)
 {

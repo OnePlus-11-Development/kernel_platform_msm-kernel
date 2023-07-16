@@ -14,8 +14,6 @@
 
 #include <linux/cgroup.h>
 
-#define MSEC_TO_NSEC (1000 * 1000)
-
 #ifdef CONFIG_HZ_300
 /*
  * Tick interval becomes to 3333333 due to
@@ -55,9 +53,6 @@ enum migrate_types {
 #define WALT_LOW_LATENCY_PROCFS		BIT(0)
 #define WALT_LOW_LATENCY_BINDER		BIT(1)
 #define WALT_LOW_LATENCY_PIPELINE	BIT(2)
-#define WALT_LOW_LATENCY_HEAVY		BIT(3)
-
-#define WALT_LOW_LATENCY_MASK		(WALT_LOW_LATENCY_PIPELINE|WALT_LOW_LATENCY_HEAVY)
 
 struct walt_cpu_load {
 	unsigned long	nl;
@@ -157,7 +152,6 @@ extern struct walt_sched_cluster *sched_cluster[WALT_NR_CPUS];
 
 extern u64 walt_sched_clock(void);
 extern int num_sched_clusters;
-extern int nr_big_cpus;
 extern unsigned int sched_capacity_margin_up[WALT_NR_CPUS];
 extern unsigned int sched_capacity_margin_down[WALT_NR_CPUS];
 extern cpumask_t asym_cap_sibling_cpus;
@@ -232,7 +226,6 @@ extern unsigned int sysctl_sched_long_running_rt_task_ms;
 extern unsigned int sysctl_ed_boost_pct;
 extern unsigned int sysctl_em_inflate_pct;
 extern unsigned int sysctl_em_inflate_thres;
-extern unsigned int sysctl_sched_heavy_nr;
 
 extern int cpufreq_walt_set_adaptive_freq(unsigned int cpu, unsigned int adaptive_low_freq,
 					  unsigned int adaptive_high_freq);
@@ -460,7 +453,7 @@ static inline bool walt_low_latency_task(struct task_struct *p)
 	if (!wts->low_latency)
 		return false;
 
-	if (wts->low_latency & WALT_LOW_LATENCY_MASK)
+	if (wts->low_latency == WALT_LOW_LATENCY_PIPELINE)
 		return true;
 
 	/* WALT_LOW_LATENCY_BINDER and WALT_LOW_LATENCY_PROCFS remain */
@@ -487,7 +480,7 @@ static inline bool walt_pipeline_low_latency_task(struct task_struct *p)
 {
 	struct walt_task_struct *wts = (struct walt_task_struct *) p->android_vendor_data1;
 
-	return wts->low_latency & WALT_LOW_LATENCY_MASK;
+	return wts->low_latency & WALT_LOW_LATENCY_PIPELINE;
 }
 
 static inline unsigned int walt_get_idle_exit_latency(struct rq *rq)
@@ -1080,9 +1073,6 @@ static inline int walt_find_and_choose_cluster_packing_cpu(int start_cpu, struct
 	/* the packing cpu can be used, so pack! */
 	return packing_cpu;
 }
-
-extern int add_pipeline(struct walt_task_struct *wts);
-extern int remove_pipeline(struct walt_task_struct *wts);
 
 extern void walt_task_dump(struct task_struct *p);
 extern void walt_rq_dump(int cpu);

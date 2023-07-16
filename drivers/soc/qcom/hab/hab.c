@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include "hab.h"
 
@@ -166,20 +166,20 @@ void hab_ctx_free(struct kref *ref)
 			ctx->kernel, ctx->closing, ctx->owner);
 
 	/* check vchans in this ctx */
-	read_lock(&ctx->ctx_lock);
+	write_lock_bh(&ctx->ctx_lock);
 	list_for_each_entry(vchan, &ctx->vchannels, node) {
 		pr_warn("leak vchan id %X cnt %X remote %d in ctx\n",
 				vchan->id, get_refcnt(vchan->refcount),
 				vchan->otherend_id);
 	}
-	read_unlock(&ctx->ctx_lock);
+	write_unlock_bh(&ctx->ctx_lock);
 
 	/* check pending open */
 	if (ctx->pending_cnt)
 		pr_warn("potential leak of pendin_open nodes %d\n",
 			ctx->pending_cnt);
 
-	read_lock(&ctx->ctx_lock);
+	write_lock_bh(&ctx->ctx_lock);
 	list_for_each_entry(open_node, &ctx->pending_open, node) {
 		pr_warn("leak pending open vcid %X type %d subid %d openid %d\n",
 			open_node->request.xdata.vchan_id,
@@ -187,7 +187,7 @@ void hab_ctx_free(struct kref *ref)
 			open_node->request.xdata.sub_id,
 			open_node->request.xdata.open_id);
 	}
-	read_unlock(&ctx->ctx_lock);
+	write_unlock_bh(&ctx->ctx_lock);
 
 	/* check vchans belong to this ctx in all hab/mmid devices */
 	for (i = 0; i < hab_driver.ndevices; i++) {
@@ -713,11 +713,6 @@ int hab_vchan_open(struct uhab_context *ctx,
 				hab_pchan_find_domid(dev,
 					HABCFG_VMID_DONT_CARE);
 			if (pchan) {
-				if (pchan->kernel_only && !ctx->kernel) {
-					pr_err("pchan only serves the kernel: mmid %d\n", mmid);
-					return -EPERM;
-				}
-
 				if (pchan->is_be)
 					vchan = backend_listen(ctx, mmid,
 							timeout);
@@ -744,10 +739,10 @@ int hab_vchan_open(struct uhab_context *ctx,
 	pr_debug("vchan id %x remote id %x session %d\n", vchan->id,
 			vchan->otherend_id, vchan->session_id);
 
-	hab_write_lock(&ctx->ctx_lock, !ctx->kernel);
+	write_lock(&ctx->ctx_lock);
 	list_add_tail(&vchan->node, &ctx->vchannels);
 	ctx->vcnt++;
-	hab_write_unlock(&ctx->ctx_lock, !ctx->kernel);
+	write_unlock(&ctx->ctx_lock);
 
 	*vcid = vchan->id;
 
@@ -772,12 +767,11 @@ int hab_vchan_close(struct uhab_context *ctx, int32_t vcid)
 	struct virtual_channel *vchan = NULL, *tmp = NULL;
 	int vchan_found = 0;
 	int ret = 0;
-	int irqs_disabled = irqs_disabled();
 
 	if (!ctx)
 		return -EINVAL;
 
-	hab_write_lock(&ctx->ctx_lock, !ctx->kernel || irqs_disabled);
+	write_lock(&ctx->ctx_lock);
 	list_for_each_entry_safe(vchan, tmp, &ctx->vchannels, node) {
 		if (vchan->id == vcid) {
 			/* local close starts */
@@ -791,16 +785,16 @@ int hab_vchan_close(struct uhab_context *ctx, int32_t vcid)
 				vchan->id, vchan->otherend_id,
 				vchan->session_id, get_refcnt(vchan->refcount));
 
-			hab_write_unlock(&ctx->ctx_lock, !ctx->kernel || irqs_disabled);
+			write_unlock(&ctx->ctx_lock);
 			/* unblocking blocked in-calls */
 			hab_vchan_stop_notify(vchan);
 			hab_vchan_put(vchan); /* there is a lock inside */
-			hab_write_lock(&ctx->ctx_lock, !ctx->kernel || irqs_disabled);
+			write_lock(&ctx->ctx_lock);
 			vchan_found = 1;
 			break;
 		}
 	}
-	hab_write_unlock(&ctx->ctx_lock, !ctx->kernel || irqs_disabled);
+	write_unlock(&ctx->ctx_lock);
 
 	if (!vchan_found)
 		ret = -ENODEV;
@@ -816,7 +810,7 @@ int hab_vchan_close(struct uhab_context *ctx, int32_t vcid)
  * vmid (self)
  */
 static int hab_initialize_pchan_entry(struct hab_device *mmid_device,
-				int vmid_local, int vmid_remote, int is_be, int kernel_only)
+				int vmid_local, int vmid_remote, int is_be)
 {
 	char pchan_name[MAX_VMID_NAME_SIZE];
 	struct physical_channel *pchan = NULL;
@@ -842,11 +836,10 @@ static int hab_initialize_pchan_entry(struct hab_device *mmid_device,
 		/* local/remote id setting should be kept in lower level */
 		pchan->vmid_local = vmid_local;
 		pchan->vmid_remote = vmid_remote;
-		pchan->kernel_only = kernel_only;
-		pr_debug("pchan %s mmid %s local %d remote %d role %d, kernel only %d\n",
+		pr_debug("pchan %s mmid %s local %d remote %d role %d\n",
 				pchan_name, mmid_device->name,
 				pchan->vmid_local, pchan->vmid_remote,
-				pchan->dom_id, pchan->kernel_only);
+				pchan->dom_id);
 	}
 
 	return ret;
@@ -867,8 +860,7 @@ static int hab_generate_pchan_group(struct local_vmid *settings,
 				find_hab_device(k),
 				settings->self,
 				HABCFG_GET_VMID(settings, i),
-				HABCFG_GET_BE(settings, i, j),
-				HABCFG_GET_KERNEL(settings, i, j));
+				HABCFG_GET_BE(settings, i, j));
 	}
 
 	return ret;

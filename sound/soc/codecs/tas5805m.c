@@ -292,7 +292,6 @@ struct TAS5805m_priv {
 	int irq;
 
 	int init_done;
-	int hs_state;
 };
 
 const struct regmap_config TAS5805m_regmap = {
@@ -340,12 +339,8 @@ static irqreturn_t tas5805m_hpd_thread_handler(int irq, void *p)
 {
 	struct TAS5805m_priv *pdata = (struct TAS5805m_priv *)p;
 
-	if (gpio_get_value(pdata->hpd_gpio))
-		pdata->hs_state = 1;
-	else
-		pdata->hs_state = 0;
-
-	tas5805m_i2c_mute(pdata->client, pdata->hs_state);
+	tas5805m_i2c_mute(pdata->client,
+			(gpio_get_value(pdata->hpd_gpio) == 1));
 	return IRQ_HANDLED;
 }
 
@@ -514,11 +509,6 @@ static int TAS5805m_mute(struct snd_soc_dai *dai, int mute, int stream)
 	u8 reg35_value = 0;
 	struct snd_soc_component *component = dai->component;
 	struct TAS5805m_priv *priv = snd_soc_component_get_drvdata(component);
-
-	if (priv->hs_state == 1) {
-		pr_debug("%s: headphone is inserting state, don't change mute state\n", __func__);
-		return 0;
-	}
 
 	if (priv->init_done) {
 		if (mute) {
@@ -727,13 +717,9 @@ static int TAS5805m_probe(struct i2c_client *client, struct regmap *regmap)
 		goto err;
 	}
 
-	if (priv->hpd_gpio >= 0) {
-		if (gpio_get_value(priv->hpd_gpio))
-			priv->hs_state = 1;
-		else
-			priv->hs_state = 0;
-		tas5805m_i2c_mute(priv->client, priv->hs_state);
-	}
+	if (priv->hpd_gpio >= 0)
+		tas5805m_i2c_mute(priv->client, gpio_get_value
+				(priv->hpd_gpio) == 1);
 
 	return 0;
 

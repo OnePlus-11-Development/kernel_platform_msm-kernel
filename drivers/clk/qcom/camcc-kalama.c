@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/clk.h>
@@ -19,7 +19,6 @@
 #include "clk-alpha-pll.h"
 #include "clk-branch.h"
 #include "clk-pll.h"
-#include "clk-pm.h"
 #include "clk-rcg.h"
 #include "clk-regmap.h"
 #include "clk-regmap-divider.h"
@@ -73,7 +72,7 @@ static struct pll_vco rivian_ole_vco[] = {
 	{ 777000000, 1285000000, 0 },
 };
 
-static struct alpha_pll_config cam_cc_pll0_config = {
+static const struct alpha_pll_config cam_cc_pll0_config = {
 	.l = 0x3E,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -94,7 +93,6 @@ static struct clk_alpha_pll cam_cc_pll0 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll0_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll0",
@@ -162,7 +160,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll0_out_odd = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll1_config = {
+static const struct alpha_pll_config cam_cc_pll1_config = {
 	.l = 0x2F,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -183,7 +181,6 @@ static struct clk_alpha_pll cam_cc_pll1 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll1_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll1",
@@ -228,7 +225,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll1_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll10_config = {
+static const struct alpha_pll_config cam_cc_pll10_config = {
 	.l = 0x30,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -249,7 +246,6 @@ static struct clk_alpha_pll cam_cc_pll10 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll10_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll10",
@@ -294,7 +290,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll10_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll11_config = {
+static const struct alpha_pll_config cam_cc_pll11_config = {
 	.l = 0x2C,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -310,7 +306,7 @@ static struct alpha_pll_config cam_cc_pll11_config = {
 	.user_ctl_hi_val = 0x00000005,
 };
 
-static struct alpha_pll_config cam_cc_pll11_config_kalama_v2 = {
+static const struct alpha_pll_config cam_cc_pll11_config_kalama_v2 = {
 	.l = 0x30,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -331,7 +327,6 @@ static struct clk_alpha_pll cam_cc_pll11 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll11_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll11",
@@ -376,7 +371,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll11_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll12_config = {
+static const struct alpha_pll_config cam_cc_pll12_config = {
 	.l = 0x2C,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -392,7 +387,7 @@ static struct alpha_pll_config cam_cc_pll12_config = {
 	.user_ctl_hi_val = 0x00000005,
 };
 
-static struct alpha_pll_config cam_cc_pll12_config_kalama_v2 = {
+static const struct alpha_pll_config cam_cc_pll12_config_kalama_v2 = {
 	.l = 0x30,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -413,7 +408,6 @@ static struct clk_alpha_pll cam_cc_pll12 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll12_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll12",
@@ -458,7 +452,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll12_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll2_config = {
+static const struct alpha_pll_config cam_cc_pll2_config = {
 	.l = 0x32,
 	.cal_l = 0x32,
 	.alpha = 0x0,
@@ -474,7 +468,6 @@ static struct clk_alpha_pll cam_cc_pll2 = {
 	.vco_table = rivian_ole_vco,
 	.num_vco = ARRAY_SIZE(rivian_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_RIVIAN_OLE],
-	.config = &cam_cc_pll2_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll2",
@@ -493,7 +486,7 @@ static struct clk_alpha_pll cam_cc_pll2 = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll3_config = {
+static const struct alpha_pll_config cam_cc_pll3_config = {
 	.l = 0x30,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -514,7 +507,6 @@ static struct clk_alpha_pll cam_cc_pll3 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll3_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll3",
@@ -559,7 +551,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll3_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll4_config = {
+static const struct alpha_pll_config cam_cc_pll4_config = {
 	.l = 0x30,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -580,7 +572,6 @@ static struct clk_alpha_pll cam_cc_pll4 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll4_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll4",
@@ -625,7 +616,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll4_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll5_config = {
+static const struct alpha_pll_config cam_cc_pll5_config = {
 	.l = 0x30,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -646,7 +637,6 @@ static struct clk_alpha_pll cam_cc_pll5 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll5_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll5",
@@ -691,7 +681,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll5_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll6_config = {
+static const struct alpha_pll_config cam_cc_pll6_config = {
 	.l = 0x30,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -712,7 +702,6 @@ static struct clk_alpha_pll cam_cc_pll6 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll6_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll6",
@@ -757,7 +746,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll6_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll7_config = {
+static const struct alpha_pll_config cam_cc_pll7_config = {
 	.l = 0x30,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -778,7 +767,6 @@ static struct clk_alpha_pll cam_cc_pll7 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll7_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll7",
@@ -823,7 +811,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll7_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll8_config = {
+static const struct alpha_pll_config cam_cc_pll8_config = {
 	.l = 0x14,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -844,7 +832,6 @@ static struct clk_alpha_pll cam_cc_pll8 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll8_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll8",
@@ -889,7 +876,7 @@ static struct clk_alpha_pll_postdiv cam_cc_pll8_out_even = {
 	},
 };
 
-static struct alpha_pll_config cam_cc_pll9_config = {
+static const struct alpha_pll_config cam_cc_pll9_config = {
 	.l = 0x32,
 	.cal_l = 0x44,
 	.cal_l_ringosc = 0x44,
@@ -910,7 +897,6 @@ static struct clk_alpha_pll cam_cc_pll9 = {
 	.vco_table = lucid_ole_vco,
 	.num_vco = ARRAY_SIZE(lucid_ole_vco),
 	.regs = clk_alpha_pll_regs[CLK_ALPHA_PLL_TYPE_LUCID_OLE],
-	.config = &cam_cc_pll9_config,
 	.clkr = {
 		.hw.init = &(struct clk_init_data){
 			.name = "cam_cc_pll9",
@@ -3993,13 +3979,6 @@ static const struct regmap_config cam_cc_kalama_regmap_config = {
 	.fast_io = true,
 };
 
-/*
- * cam_cc_gdsc_clk
- */
-static struct critical_clk_offset critical_clk_list[] = {
-	{ .offset = 0x1419c, .mask = BIT(0) },
-};
-
 static struct qcom_cc_desc cam_cc_kalama_desc = {
 	.config = &cam_cc_kalama_regmap_config,
 	.clks = cam_cc_kalama_clocks,
@@ -4008,8 +3987,6 @@ static struct qcom_cc_desc cam_cc_kalama_desc = {
 	.num_resets = ARRAY_SIZE(cam_cc_kalama_resets),
 	.clk_regulators = cam_cc_kalama_regulators,
 	.num_clk_regulators = ARRAY_SIZE(cam_cc_kalama_regulators),
-	.critical_clk_en = critical_clk_list,
-	.num_critical_clk = ARRAY_SIZE(critical_clk_list),
 };
 
 static const struct of_device_id cam_cc_kalama_match_table[] = {
@@ -4022,9 +3999,7 @@ MODULE_DEVICE_TABLE(of, cam_cc_kalama_match_table);
 static void cam_cc_kalama_fixup_kalamav2(struct regmap *regmap)
 {
 	clk_lucid_ole_pll_configure(&cam_cc_pll11, regmap, &cam_cc_pll11_config_kalama_v2);
-	cam_cc_pll11.config = &cam_cc_pll11_config_kalama_v2;
 	clk_lucid_ole_pll_configure(&cam_cc_pll12, regmap, &cam_cc_pll12_config_kalama_v2);
-	cam_cc_pll12.config = &cam_cc_pll12_config_kalama_v2;
 	cam_cc_ife_1_dsp_clk_src.freq_tbl = ftbl_cam_cc_ife_1_dsp_clk_src_kalama_v2;
 	cam_cc_ife_1_dsp_clk_src.clkr.vdd_data.rate_max[VDD_LOWER] = 466000000;
 	cam_cc_ife_2_dsp_clk_src.freq_tbl = ftbl_cam_cc_ife_2_dsp_clk_src_kalama_v2;
@@ -4055,9 +4030,13 @@ static int cam_cc_kalama_probe(struct platform_device *pdev)
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
 
-	ret = register_qcom_clks_pm(pdev, true, &cam_cc_kalama_desc);
+	ret = qcom_cc_runtime_init(pdev, &cam_cc_kalama_desc);
 	if (ret)
-		dev_err(&pdev->dev, "Failed to register for pm ops\n");
+		return ret;
+
+	ret = pm_runtime_get_sync(&pdev->dev);
+	if (ret)
+		return ret;
 
 	clk_lucid_ole_pll_configure(&cam_cc_pll0, regmap, &cam_cc_pll0_config);
 	clk_lucid_ole_pll_configure(&cam_cc_pll1, regmap, &cam_cc_pll1_config);
@@ -4077,8 +4056,11 @@ static int cam_cc_kalama_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	/* Enabling always ON clocks */
-	clk_restore_critical_clocks(&pdev->dev);
+	/*
+	 * Keep clocks always enabled:
+	 *	cam_cc_gdsc_clk
+	 */
+	regmap_update_bits(regmap, 0x1419c, BIT(0), BIT(0));
 
 	ret = qcom_cc_really_probe(pdev, &cam_cc_kalama_desc, regmap);
 	if (ret) {
@@ -4097,12 +4079,19 @@ static void cam_cc_kalama_sync_state(struct device *dev)
 	qcom_cc_sync_state(dev, &cam_cc_kalama_desc);
 }
 
+static const struct dev_pm_ops cam_cc_kalama_pm_ops = {
+	SET_RUNTIME_PM_OPS(qcom_cc_runtime_suspend, qcom_cc_runtime_resume, NULL)
+	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend,
+				pm_runtime_force_resume)
+};
+
 static struct platform_driver cam_cc_kalama_driver = {
 	.probe = cam_cc_kalama_probe,
 	.driver = {
 		.name = "cam_cc-kalama",
 		.of_match_table = cam_cc_kalama_match_table,
 		.sync_state = cam_cc_kalama_sync_state,
+		.pm = &cam_cc_kalama_pm_ops,
 	},
 };
 

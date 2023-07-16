@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/clk.h>
@@ -18,7 +17,6 @@
 #include "clk-alpha-pll.h"
 #include "clk-branch.h"
 #include "clk-pll.h"
-#include "clk-pm.h"
 #include "clk-rcg.h"
 #include "clk-regmap.h"
 #include "clk-regmap-divider.h"
@@ -122,7 +120,7 @@ static const struct regmap_config tcsr_cc_kalama_regmap_config = {
 	.fast_io = true,
 };
 
-static struct qcom_cc_desc tcsr_cc_kalama_desc = {
+static const struct qcom_cc_desc tcsr_cc_kalama_desc = {
 	.config = &tcsr_cc_kalama_regmap_config,
 	.clks = tcsr_cc_kalama_clocks,
 	.num_clks = ARRAY_SIZE(tcsr_cc_kalama_clocks),
@@ -142,10 +140,6 @@ static int tcsr_cc_kalama_probe(struct platform_device *pdev)
 	regmap = qcom_cc_map(pdev, &tcsr_cc_kalama_desc);
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
-
-	ret = register_qcom_clks_pm(pdev, false, &tcsr_cc_kalama_desc);
-	if (ret)
-		dev_err(&pdev->dev, "Failed to register for pm ops\n");
 
 	ret = qcom_cc_really_probe(pdev, &tcsr_cc_kalama_desc, regmap);
 	if (ret) {

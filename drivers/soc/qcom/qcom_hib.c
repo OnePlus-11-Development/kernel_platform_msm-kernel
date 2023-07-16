@@ -11,12 +11,10 @@
 #include <trace/hooks/bl_hib.h>
 #include <linux/blkdev.h>
 #include <linux/swap.h>
-#include <soc/qcom/qcom_hibernation.h>
 
 #define __NEW_UTS_LEN 64
 
-struct block_device *hiber_bdev;
-EXPORT_SYMBOL(hiber_bdev);
+static struct block_device *hiber_bdev;
 
 struct arch_hibernate_hdr_invariants {
 	char uts_version[__NEW_UTS_LEN + 1];

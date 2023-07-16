@@ -22,6 +22,3 @@ debug-regulator.ko
 virtio_regulator.ko
 crypto-qti-virt.ko
 virtio_blk_qti_crypto.ko
-iommu-logger.ko
-qcom_iommu_util.ko
-arm_smmu.ko

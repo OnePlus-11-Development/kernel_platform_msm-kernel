@@ -21,7 +21,6 @@
 #include <soc/qcom/subsystem_notif.h>
 #include <linux/suspend.h>
 #include <linux/pm.h>
-#include <linux/rpmsg/qcom_glink.h>
 
 #include "rpmsg_internal.h"
 #include "qcom_glink_native.h"
@@ -384,35 +383,24 @@ static int glink_rpm_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#if defined(CONFIG_DEEPSLEEP)
 int glink_rpm_resume_noirq(struct device *dev)
 {
-#if IS_ENABLED(CONFIG_DEEPSLEEP) && IS_ENABLED(CONFIG_RPMSG_QCOM_GLINK_RPM)
 	struct qcom_glink *glink;
-	int ret = 0;
 
-	if (pm_suspend_via_firmware()) {
-		dev_info(dev, "Deep sleep exit path\n");
+	if (!of_device_is_compatible(dev->of_node, "qcom,glink-rpm"))
+		return 0;
 
-		glink_rpm_unregister(dev);
-		glink = glink_rpm_register(dev, dev->of_node);
-		if (IS_ERR(glink)) {
-			ret = PTR_ERR(glink);
-			pr_err("glink_rpm_register failed\n");
-		}
-		ret = qcom_glink_native_start(glink);
-		if (ret)
-			pr_err("Failed to register glink as chrdev\n");
+	dev_info(dev, "Deep sleep exit path\n");
 
-		dev_set_drvdata(dev, glink);
-		glink_rpm_ready_wait();
-	}
-#endif
+	glink_rpm_unregister(dev);
+	glink = glink_rpm_register(dev, dev->of_node);
+	dev_set_drvdata(dev, glink);
+
 	return 0;
 }
-
-const struct dev_pm_ops glink_rpm_pm_ops = {
-	.resume_noirq = glink_rpm_resume_noirq,
-};
+EXPORT_SYMBOL(glink_rpm_resume_noirq);
+#endif
 
 static const struct of_device_id glink_rpm_of_match[] = {
 	{ .compatible = "qcom,glink-rpm" },
@@ -426,7 +414,7 @@ static struct platform_driver glink_rpm_driver = {
 	.driver = {
 		.name = "qcom_glink_rpm",
 		.of_match_table = glink_rpm_of_match,
-		.pm = &glink_rpm_pm_ops,
+		.pm = &glink_native_pm_ops,
 	},
 };
 
