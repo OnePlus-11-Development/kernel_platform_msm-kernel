@@ -163,5 +163,8 @@ x509.genkey
 # generated defconfigs
 arch/*/configs/vendor/*_defconfig
 
+# vendor device tree directorie
+arch/arm64/boot/dts/vendor
+
 # Documentation toolchain
 sphinx_*/
